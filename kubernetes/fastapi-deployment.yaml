@@ -5,7 +5,7 @@ metadata:
     name: fastapi-deployment
     namespace: minecraft-servers
 spec:
-    replicas: 3
+    replicas: 1
     selector:
         matchLabels:
             app: fastapi
