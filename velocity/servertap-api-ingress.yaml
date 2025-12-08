@@ -1,0 +1,31 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+    name: servertap-testuser123-ingress
+    namespace: minecraft-servers
+    annotations:
+        # Nginx Ingress Controller 사용 시
+        nginx.ingress.kubernetes.io/rewrite-target: /
+        # WebSocket 지원 (ServerTap WebSocket 사용 시)
+        nginx.ingress.kubernetes.io/websocket-services: mc-testuser123-svc
+        # HTTPS 사용 시 (Let's Encrypt 등)
+        # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+    ingressClassName: nginx # 사용 중인 Ingress Controller에 맞게
+    rules:
+        - host: testuser123-api.mc.msdca.shop
+          http:
+              paths:
+                  - path: /
+                    pathType: Prefix
+                    backend:
+                        service:
+                            name: mc-testuser123-svc
+                            port:
+                                number: 4567 # ServerTap 포트
+    # HTTPS 사용 시
+    # tls:
+    # - hosts:
+    #   - testuser123-api.yourdomain.com
+    #   secretName: testuser123-api-tls

@@ -1,0 +1,310 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+    name: pv-mc-testuser123
+    labels:
+        app: mc-testuser123
+spec:
+    capacity:
+        storage: 10Gi
+    volumeMode: Filesystem
+    accessModes:
+        - ReadWriteOnce
+    persistentVolumeReclaimPolicy: Retain
+    storageClassName: manual
+    nfs:
+        server: 100.75.219.111
+        path: /mnt/nfs-minecraft/mc-testuser123
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: pvc-mc-testuser123
+    namespace: minecraft-servers
+    labels:
+        app: mc-testuser123
+        type: minecraft-storage
+spec:
+    storageClassName: manual
+    accessModes:
+        - ReadWriteOnce
+    resources:
+        requests:
+            storage: 10Gi
+    volumeName: pv-mc-testuser123
+
+### configmap 설정
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: servertap-config-testuser123
+  namespace: minecraft-servers
+data:
+  config.yml: |
+    port: 4567
+    debug: false
+    useKeyAuth: true
+    key: test1234
+    normalizeMessages: true
+    tls:
+      enabled: false
+      keystore: keystore.jks
+      keystorePassword: ""
+      sni: false
+    corsOrigins:
+      - "*"
+    websocketConsoleBuffer: 1000
+    disable-swagger: false
+    blocked-paths: []
+
+### 로컬 파일을 PVC에 복사
+
+### kubectl exec temp-file-copy -n minecraft-servers -- mkdir -p /data/plugins
+### kubectl exec temp-file-copy -n minecraft-servers -- ls -la /data/
+### kubectl cp ./ServerTap-0.6.2.jar minecraft-servers/temp-file-copy:/data/plugins/ServerTap-0.6.2.jar
+### kubectl exec temp-file-copy -n minecraft-servers -- ls -la /data/plugins/
+### kubectl delete pod temp-file-copy -n minecraft-servers
+---
+### kubectl logs mc-testuser123 -n minecraft-servers --previous
+### kubectl logs mc-testuser123 -n minecraft-servers -f
+### kubectl logs my-second-server -n minecraft-servers -f
+### kubectl logs velocity-6896cf454c-hp6c9 -n minecraft-servers -f
+
+
+### 이 코드로 꼭 시크릿 값 확인하기
+### kubectl exec -n minecraft-servers deployment/velocity -- cat /server/forwarding.secret
+
+
+
+---
+# mc-pod.yaml (PLUGINS 환경변수 제거)
+
+
+### paper 관련 configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: paper-global-config
+  namespace: minecraft-servers
+data:
+  paper-global.yml: |
+    proxies:
+      velocity:
+        enabled: true
+        online-mode: false
+        secret: 'PVLvirIhCDt4C1FoVhlrikub'
+
+---
+
+### pod 배포
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mc-testuser123
+  namespace: minecraft-servers
+  labels:
+    app: mc-testuser123
+    user-id: testuser123
+    type: minecraft-server
+  annotations:
+    created-by: manual-example
+    game-port: "30123"
+
+spec:
+  # ===== initContainer: ConfigMap을 먼저 복사 =====
+  initContainers:
+  - name: copy-serpertap-config
+    image: busybox:1.35
+    command: ['sh', '-c']
+    args:
+    - |
+      set -e
+      echo "Creating ServerTap directory..."
+      mkdir -p /data/plugins/ServerTap
+      
+      echo "Copying config file..."
+      cp /config/config.yml /data/plugins/ServerTap/config.yml
+      
+      echo "Setting permissions..."
+      chmod 644 /data/plugins/ServerTap/config.yml
+      
+      echo "Verifying..."
+      ls -la /data/plugins/ServerTap/config.yml
+      cat /data/plugins/ServerTap/config.yml
+      
+      echo "ServerTap config setup complete!"
+    volumeMounts:
+    - name: minecraft-data
+      mountPath: /data
+    - name: servertap-config
+      mountPath: /config
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+      allowPrivilegeEscalation: false
+      
+  - name: copy-paper-config
+    image: busybox:1.35
+    command: ['sh', '-c']
+    args:
+    - |
+      set -e
+      echo "Creating Paper config directory..."
+      mkdir -p /data/config
+      
+      echo "Copying Paper global config..."
+      cp /paper-config/paper-global.yml /data/config/paper-global.yml
+      
+      echo "Setting permissions..."
+      chmod 644 /data/config/paper-global.yml
+      
+      echo "Paper config setup complete!"
+      cat /data/config/paper-global.yml | grep -A 5 "velocity"
+    volumeMounts:
+    - name: minecraft-data
+      mountPath: /data
+    - name: paper-config
+      mountPath: /paper-config
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+      allowPrivilegeEscalation: false
+
+  containers:
+    - name: minecraft
+      image: itzg/minecraft-server:latest
+      ports:
+        - containerPort: 25565
+          name: minecraft
+          protocol: TCP
+        - containerPort: 4567
+          name: servertap
+          protocol: TCP
+      env:
+        - name: EULA
+          value: "TRUE"
+        - name: TYPE
+          value: "PAPER"
+        - name: VERSION
+          value: "1.21.1"
+        - name: MEMORY
+          value: "3G"
+        - name: REPLACE_ENV_IN_PLACE
+          value: "true"
+        - name: ENFORCE_WHITELIST
+          value: "FALSE"
+        - name: DEBUG
+          value: "false"
+        - name: LOG_TIMESTAMP
+          value: "true"
+        
+        # ===== Velocity 연동 설정 (Modern 포워딩) =====
+        - name: ONLINE_MODE
+          value: "FALSE"
+        
+        # ===== Paper 서버용 Velocity 설정 =====
+        - name: PAPER_PROXY_SECRET
+          value: "PVLvirIhCDt4C1FoVhlrikub"
+
+      resources:
+        limits:
+          cpu: "2"
+          memory: "4Gi"
+        requests:
+          cpu: "1"
+          memory: "2Gi"
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        allowPrivilegeEscalation: false
+
+      volumeMounts:
+        - name: minecraft-data
+          mountPath: /data
+
+      # ===== 최적화된 Readiness Probe =====
+      readinessProbe:
+        tcpSocket:
+          port: 25565
+        initialDelaySeconds: 60
+        periodSeconds: 5
+        timeoutSeconds: 1
+        successThreshold: 1
+        failureThreshold: 20
+
+      # ===== 최적화된 Liveness Probe =====
+      livenessProbe:
+        tcpSocket:
+          port: 25565
+        initialDelaySeconds: 180
+        periodSeconds: 30
+        timeoutSeconds: 5
+        failureThreshold: 3
+
+  volumes:
+    - name: minecraft-data
+      persistentVolumeClaim:
+        claimName: pvc-mc-testuser123
+    - name: servertap-config
+      configMap:
+        name: servertap-config-testuser123
+    - name: paper-config
+      configMap:
+        name: paper-global-config  # ← 추가!
+
+  securityContext:
+    fsGroup: 1000
+    runAsNonRoot: true
+
+  restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mc-testuser123-svc
+  namespace: minecraft-servers
+  labels:
+    app: mc-testuser123
+    minecraft-server: "true"      # ← 추가!
+    subdomain: "testuser123"      # ← 추가!
+spec:
+  type: ClusterIP
+  selector:
+    app: mc-testuser123
+  ports:
+  - name: minecraft
+    port: 25565
+    protocol: TCP
+    targetPort: 25565
+  - name: api
+    port: 4567
+    protocol: TCP
+    targetPort: 4567
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: servertap-testuser123-ingress
+  namespace: minecraft-servers
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/websocket-services: mc-testuser123-svc
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: testuser123-api.mc.msdca.shop  
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mc-testuser123-svc
+            port:
+              number: 4567

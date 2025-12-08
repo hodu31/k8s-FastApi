@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: subdomain-router-config
+  namespace: minecraft-servers
+data:
+  config.yml: |
+    # Subdomain Router Enhanced 설정
+    domain-suffix: ".mc.msdca.shop"
+    kubernetes-namespace: "minecraft-servers"
+    initial-server-label: "initial-server"
+    check-interval: 30

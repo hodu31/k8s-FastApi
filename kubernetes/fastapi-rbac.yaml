@@ -1,0 +1,83 @@
+# fastapi-rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fastapi-sa
+  namespace: minecraft-servers
+---
+# 클러스터 레벨 권한 (PV 등)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fastapi-cluster-role
+rules:
+  - apiGroups: [""]
+    resources:
+      - persistentvolumes  # PV는 클러스터 레벨
+      - nodes
+    verbs: ["get", "list", "create", "delete", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: fastapi-cluster-role-binding
+subjects:
+  - kind: ServiceAccount
+    name: fastapi-sa
+    namespace: minecraft-servers
+roleRef:
+  kind: ClusterRole
+  name: fastapi-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# 네임스페이스 레벨 권한
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: fastapi-role
+  namespace: minecraft-servers
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log  # ⭐ Job 로그 읽기용
+      - services
+      - persistentvolumeclaims
+      - configmaps
+      - secrets
+      - events
+    verbs: ["get", "list", "watch", "create", "delete", "patch", "update"]
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - replicasets
+    verbs: ["get", "list", "watch", "create", "delete", "patch", "update"]
+  - apiGroups: ["batch"]  # ⭐ Job 권한 추가!
+    resources:
+      - jobs
+    verbs: ["get", "list", "watch", "create", "delete", "patch", "update"]
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - ingresses
+    verbs: ["get", "list", "watch", "create", "delete", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: fastapi-rolebinding
+  namespace: minecraft-servers
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: fastapi-role
+subjects:
+  - kind: ServiceAccount
+    name: fastapi-sa
+    namespace: minecraft-servers
+
+
+###kubectl delete serviceaccount fastapi-sa -n minecraft-servers
+###kubectl delete role fastapi-role -n minecraft-servers
+###kubectl delete rolebinding fastapi-rolebinding -n minecraft-servers
+###kubectl delete clusterrole fastapi-cluster-role
+###kubectl delete clusterrolebinding fastapi-cluster-role-binding

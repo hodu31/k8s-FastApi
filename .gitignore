@@ -1,0 +1,42 @@
+# Environments
+.env
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Generated secret files
+generated-secrets.yaml
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# build artifacts
+/dist/
+/build/
+*.egg-info/
+/downloads/
+/htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*,cover
+*.log
+*.pot
+
+# Other
+.DS_Store
+Thumbs.db

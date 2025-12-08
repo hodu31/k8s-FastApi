@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: velocity
+  namespace: minecraft-servers
+  labels:
+    app: velocity
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: velocity
+  template:
+    metadata:
+      labels:
+        app: velocity
+    spec:
+      serviceAccountName: velocity-sa
+      nodeSelector:
+        kubernetes.io/hostname: worker03
+      
+      initContainers:
+      - name: download-plugin
+        image: curlimages/curl:latest
+        command:
+        - sh
+        - -c
+        - |
+          echo "Downloading SubdomainRouterEnhanced plugin from GitHub..."
+          curl -L -o /plugins/SubdomainRouterEnhanced-2.0.0.jar \
+            https://github.com/hodu31/velocity-plugins/releases/download/v2.0.0/SubdomainRouterEnhanced-2.0.0.jar
+          echo "Download complete!"
+          ls -lh /plugins/
+        volumeMounts:
+        - name: plugins-volume
+          mountPath: /plugins
+      
+      # 플러그인 설정 파일 복사
+      - name: copy-plugin-config
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          echo "Creating plugin config directory..."
+          mkdir -p /server/plugins/subdomain-router
+          echo "Copying plugin config..."
+          cp /plugin-config/config.yml /server/plugins/subdomain-router/config.yml
+          echo "Config copied successfully!"
+          echo "Config contents:"
+          cat /server/plugins/subdomain-router/config.yml
+        volumeMounts:
+        - name: plugins-volume
+          mountPath: /server/plugins
+        - name: plugin-config-volume
+          mountPath: /plugin-config
+      
+      # forwarding.secret 파일 고정
+      - name: set-forwarding-secret
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          echo "Setting forwarding secret..."
+          echo "PVLvirIhCDt4C1FoVhlrikub" > /server/forwarding.secret
+          echo "Secret set!"
+          cat /server/forwarding.secret
+        volumeMounts:
+        - name: data-volume
+          mountPath: /server
+          
+      containers:
+      - name: velocity
+        image: itzg/mc-proxy:java17
+        ports:
+        - name: velocity-port
+          containerPort: 25577
+        env:
+        - name: TYPE
+          value: "VELOCITY"
+        - name: VELOCITY_VERSION
+          value: "LATEST"
+        - name: MEMORY
+          value: "1G"
+        volumeMounts:
+        - name: data-volume
+          mountPath: /server
+        - name: plugins-volume
+          mountPath: /server/plugins
+        - name: config-volume
+          mountPath: /config/velocity.toml
+          subPath: velocity.toml
+          
+      volumes:
+      - name: plugins-volume
+        emptyDir: {}
+      - name: config-volume
+        configMap:
+          name: velocity-config
+      - name: data-volume
+        emptyDir: {}
+      - name: plugin-config-volume
+        configMap:
+          name: subdomain-router-config
