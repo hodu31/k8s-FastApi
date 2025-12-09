@@ -439,7 +439,13 @@ blocked-paths: []
         self._delete_resource(self.networking_v1.delete_namespaced_ingress, "Ingress", f"servertap-{pod_name}-ingress")
         self._delete_resource(self.v1.delete_namespaced_config_map, "ConfigMap", f"servertap-config-{pod_name}")
         # paper-global-config는 공용이므로 삭제하지 않음
-
+        
+        # === [추가된 부분] ===
+        return {
+            "status": "success",
+            "message": f"Server {pod_name} resources cleaned up (paused).",
+            "pod_name": pod_name
+        }
     def delete_persistent_data(self, pvc_name: str):
         """영구 데이터(PVC 및 PV)를 삭제합니다."""
         pvc_name = self._sanitize_name(pvc_name)
