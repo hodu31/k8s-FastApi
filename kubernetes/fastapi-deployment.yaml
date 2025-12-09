@@ -46,7 +46,7 @@ spec:
                         valueFrom:
                             secretKeyRef:
                                 name: fastapi-secrets # 쿠버네티스 시크릿 이름
-                                key: VELOCITY-FORWARDING-SECRET # 시크릿 안에 들어있는 열쇠 이름
+                                key: velocity-forwarding-secret # 시크릿 안에 들어있는 열쇠 이름
 
                   resources:
                       requests:
