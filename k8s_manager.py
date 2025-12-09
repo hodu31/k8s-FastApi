@@ -431,13 +431,13 @@ blocked-paths: []
                 raise
             print(f"⚠️ {resource_type} '{resource_name}'이(가) 존재하지 않음")
 
-    def cleanup_ephemeral_resources(self, deployment_name: str):
+    def cleanup_ephemeral_resources(self, pod_name: str):
         """Deployment, Service, Ingress 등 일시적인 리소스를 정리합니다. (PV/PVC 제외)"""
-        print(f"🧹 임시 리소스 정리 시작: {deployment_name}")
-        self._delete_resource(self.apps_v1.delete_namespaced_deployment, "Deployment", deployment_name)
-        self._delete_resource(self.v1.delete_namespaced_service, "Service", f"{deployment_name}-svc")
-        self._delete_resource(self.networking_v1.delete_namespaced_ingress, "Ingress", f"servertap-{deployment_name}-ingress")
-        self._delete_resource(self.v1.delete_namespaced_config_map, "ConfigMap", f"servertap-config-{deployment_name}")
+        print(f"🧹 임시 리소스 정리 시작: {pod_name}")
+        self._delete_resource(self.apps_v1.delete_namespaced_deployment, "Deployment", pod_name)
+        self._delete_resource(self.v1.delete_namespaced_service, "Service", f"{pod_name}-svc")
+        self._delete_resource(self.networking_v1.delete_namespaced_ingress, "Ingress", f"servertap-{pod_name}-ingress")
+        self._delete_resource(self.v1.delete_namespaced_config_map, "ConfigMap", f"servertap-config-{pod_name}")
         # paper-global-config는 공용이므로 삭제하지 않음
 
     def delete_persistent_data(self, pvc_name: str):
