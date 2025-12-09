@@ -45,7 +45,7 @@ jobs:
         
         # ⚠️ [중요] 수정할 파일 경로를 정확히 적어주세요!
         # 만약 파일이 'k8s' 폴더 안에 있다면 "k8s/deployment.yaml"로 고쳐야 합니다.
-        DEPLOYMENT_FILE="deployment.yaml" 
+        DEPLOYMENT_FILE="kubernetes/fastapi-deployment.yaml"
         
         # sed 명령어로 deployment.yaml 안의 이미지 태그를 현재 커밋 해시로 교체
         # 예: image: de31/minecraft-fastapi:v2 -> image: de31/minecraft-fastapi:a1b2c3...
