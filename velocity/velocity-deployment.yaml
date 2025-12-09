@@ -6,7 +6,7 @@ metadata:
   labels:
     app: velocity
 spec:
-  replicas: 3
+  replicas: 1  
   selector:
     matchLabels:
       app: velocity
@@ -47,25 +47,29 @@ spec:
           echo "Copying plugin config..."
           cp /plugin-config/config.yml /server/plugins/subdomain-router/config.yml
           echo "Config copied successfully!"
-          echo "Config contents:"
-          cat /server/plugins/subdomain-router/config.yml
         volumeMounts:
         - name: plugins-volume
           mountPath: /server/plugins
         - name: plugin-config-volume
           mountPath: /plugin-config
       
-      # forwarding.secret 파일 고정
+      # 👇 [수정됨] 하드코딩 제거하고 Secret에서 가져오도록 변경!
       - name: set-forwarding-secret
         image: busybox:1.36
+        env:
+          - name: FORWARDING_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: fastapi-secrets           # 아까 만든 시크릿 이름
+                key: velocity-forwarding-secret # 시크릿 안에 있는 키 이름
         command:
         - sh
         - -c
         - |
-          echo "Setting forwarding secret..."
-          echo "PVLvirIhCDt4C1FoVhlrikub" > /server/forwarding.secret
-          echo "Secret set!"
-          cat /server/forwarding.secret
+          echo "Setting forwarding secret form Kubernetes Secret..."
+          # 환경변수($FORWARDING_SECRET)를 파일로 씁니다.
+          echo "$FORWARDING_SECRET" > /server/forwarding.secret
+          echo "Secret set successfully!"
         volumeMounts:
         - name: data-volume
           mountPath: /server

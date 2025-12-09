@@ -123,6 +123,23 @@ def delete_server(pod_name: str, pvc_name: str) -> Dict[str, Any]:
             detail=str(e)
         )
 
+@app.post(
+    "/k8s/server/{pod_name}/pause",
+    summary="마인크래프트 서버 일시정지",
+    description="서버를 일시정지 상태로 만듭니다. Pod, Deployment 등은 삭제되지만 데이터 볼륨(PVC)은 보존되어 나중에 서버를 다시 시작할 수 있습니다.",
+    dependencies=[Depends(verify_api_key)]
+)
+def pause_server(pod_name: str) -> Dict[str, Any]:
+    """서버 일시정지 엔드포인트"""
+    try:
+        # MinecraftServerManager의 pause_server 메소드를 직접 호출
+        return server_manager.pause_server(pod_name=pod_name)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
 @app.get(
     "/k8s/volumes",
     summary="모든 데이터 볼륨 목록 조회",

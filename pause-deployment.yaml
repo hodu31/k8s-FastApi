@@ -1,0 +1,28 @@
+### 자리 맡아두기용 파드
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: buffer-pods
+  namespace: minecraft-servers
+spec:
+  # 여유분으로 몇 개를 띄워둘지 결정 (보통 1개면 충분)
+  replicas: 1
+  selector:
+    matchLabels:
+      app: buffer
+  template:
+    metadata:
+      labels:
+        app: buffer
+    spec:
+      # 👇 이 파드는 '천민' 계급이라 자리가 부족하면 쫓겨납니다.
+      priorityClassName: low-priority-pause
+      containers:
+      - name: pause
+        image: registry.k8s.io/pause:3.1
+        resources:
+          requests:
+            # ⚠️ 사용 중인 노드 스펙에 맞춰서 "꽉 차게" 설정해야 합니다.
+            # 예: t3.medium이 2 vCPU라면 약 1.5 정도로 설정
+            cpu: "1500m"
+            memory: "3Gi"

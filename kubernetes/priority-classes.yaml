@@ -1,0 +1,16 @@
+# priority-classes.yaml
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority-customer
+value: 1000000
+globalDefault: false
+description: "실제 마인크래프트 서버용 (절대 밀려나지 않음)"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: low-priority-pause
+value: -10
+globalDefault: false
+description: "자리 맡아두기용 (필요하면 쫓겨남)"

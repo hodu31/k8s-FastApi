@@ -63,3 +63,18 @@ class MinecraftServerManager:
         print(f"🔥 서버 데이터 영구 삭제 시작: {pvc_name}")
         self.k8s.delete_persistent_data(pvc_name=pvc_name)
         return {"status": "persistent_data_deleted", "pvc_name": pvc_name}
+
+    def pause_server(self, pod_name: str) -> dict:
+        """
+        서버를 일시정지합니다. 즉, Pod/Deployment와 같은 임시 리소스는 삭제하지만 PVC는 보존합니다.
+        """
+        print(f"⏸️ 서버 일시정지 시작: pod={pod_name}")
+        try:
+            # cleanup_ephemeral_resources는 네임스페이스와 pod_name을 모두 요구할 수 있습니다.
+            # k8s_manager의 구현에 따라 네임스페이스를 전달해야 할 수 있습니다.
+            result = self.k8s.cleanup_ephemeral_resources(pod_name=pod_name)
+            print(f"✅ 서버 일시정지 완료: {pod_name}")
+            return result
+        except Exception as e:
+            print(f"❌ 서버 일시정지 실패: {e}")
+            raise e
