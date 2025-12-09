@@ -198,121 +198,126 @@ blocked-paths: []
         print(f"📜 ConfigMap '{cm_name}' 생성 중...")
         self.v1.create_namespaced_config_map(namespace=K8S_NAMESPACE, body=cm)
 
-    def create_pod(self, pod_name: str, pvc_name: str, memory_limit: str = MEMORY_LIMIT, memory_request: str = MEMORY_REQUEST, cpu_limit: str = CPU_LIMIT, cpu_request: str = CPU_REQUEST):
-        """`test-test-mine-pod.yaml`을 기반으로 Pod를 생성합니다."""
-        print(f"DEBUG: CPU Limit: '{cpu_limit}', Type: {type(cpu_limit)}")
-        print(f"DEBUG: CPU Request: '{cpu_request}', Type: {type(cpu_request)}")
-        print(f"DEBUG: Memory Limit: '{memory_limit}', Type: {type(memory_limit)}")
-        print(f"DEBUG: Memory Request: '{memory_request}', Type: {type(memory_request)}")
-        pod = client.V1Pod(
-            api_version="v1",
-            kind="Pod",
+    def create_deployment(self, deployment_name: str, pvc_name: str, memory_limit: str = MEMORY_LIMIT, memory_request: str = MEMORY_REQUEST, cpu_limit: str = CPU_LIMIT, cpu_request: str = CPU_REQUEST):
+        """마인크래프트 서버를 위한 Deployment를 생성합니다."""
+        pod_labels = {"app": deployment_name, "type": "minecraft-server"}
+
+        pod_spec = client.V1PodSpec(
+            priority_class_name="high-priority-customer",
+            init_containers=[
+                client.V1Container(
+                    name="copy-plugins-from-cache",
+                    image=BUSYBOX_IMAGE,
+                    command=['sh', '-c'],
+                    args=[
+                        "set -e; "
+                        "mkdir -p /data/plugins; "
+                        "cp /plugins-cache/*.jar /data/plugins/ 2>/dev/null || true; "
+                        "chmod 644 /data/plugins/*.jar 2>/dev/null || true; "
+                        "echo 'Plugins copied from cache:'; "
+                        "ls -lh /data/plugins/"
+                    ],
+                    volume_mounts=[
+                        client.V1VolumeMount(name="minecraft-data", mount_path="/data"),
+                        client.V1VolumeMount(name="plugins-cache", mount_path="/plugins-cache", read_only=True)
+                    ],
+                    security_context=client.V1SecurityContext(run_as_user=1000, run_as_group=1000)
+                ),
+                client.V1Container(
+                    name="copy-serpertap-config",
+                    image=BUSYBOX_IMAGE,
+                    command=['sh', '-c'],
+                    args=[
+                        "set -e; mkdir -p /data/plugins/ServerTap; "
+                        f"cp /config/config.yml /data/plugins/ServerTap/config.yml; "
+                        "chmod 644 /data/plugins/ServerTap/config.yml; "
+                        "echo 'ServerTap config copied successfully.'"
+                    ],
+                    volume_mounts=[
+                        client.V1VolumeMount(name="minecraft-data", mount_path="/data"),
+                        client.V1VolumeMount(name="servertap-config", mount_path="/config")
+                    ],
+                    security_context=client.V1SecurityContext(run_as_user=1000, run_as_group=1000)
+                ),
+                client.V1Container(
+                    name="copy-paper-config",
+                    image=BUSYBOX_IMAGE,
+                    command=['sh', '-c'],
+                    args=[
+                        "set -e; mkdir -p /data/config; "
+                        "cp /paper-config/paper-global.yml /data/config/paper-global.yml; "
+                        "chmod 644 /data/config/paper-global.yml; "
+                        "echo 'Paper config copied successfully.'"
+                    ],
+                    volume_mounts=[
+                        client.V1VolumeMount(name="minecraft-data", mount_path="/data"),
+                        client.V1VolumeMount(name="paper-config", mount_path="/paper-config")
+                    ],
+                    security_context=client.V1SecurityContext(run_as_user=1000, run_as_group=1000)
+                )
+            ],
+            containers=[
+                client.V1Container(
+                    name="minecraft",
+                    image=MINECRAFT_IMAGE,
+                    ports=[
+                        client.V1ContainerPort(container_port=25565, name="minecraft"),
+                        client.V1ContainerPort(container_port=4567, name="servertap")
+                    ],
+                    env=[
+                        client.V1EnvVar(name="EULA", value="TRUE"),
+                        client.V1EnvVar(name="TYPE", value="PAPER"),
+                        client.V1EnvVar(name="VERSION", value="1.21.1"),
+                        client.V1EnvVar(name="MEMORY", value="3G"),
+                        client.V1EnvVar(name="ONLINE_MODE", value="FALSE"),
+                        client.V1EnvVar(name="PAPER_PROXY_SECRET", value=VELOCITY_SECRET),
+                    ],
+                    resources=client.V1ResourceRequirements(
+                        limits={"cpu": str(cpu_limit), "memory": memory_limit},
+                        requests={"cpu": str(cpu_request), "memory": memory_request}
+                    ),
+                    security_context=client.V1SecurityContext(run_as_non_root=True, run_as_user=1000, run_as_group=1000, allow_privilege_escalation=False),
+                    volume_mounts=[client.V1VolumeMount(name="minecraft-data", mount_path="/data")],
+                    readiness_probe=client.V1Probe(tcp_socket=client.V1TCPSocketAction(port=25565), initial_delay_seconds=60, period_seconds=5, failure_threshold=20),
+                    liveness_probe=client.V1Probe(tcp_socket=client.V1TCPSocketAction(port=25565), initial_delay_seconds=180, period_seconds=30, failure_threshold=3)
+                )
+            ],
+            volumes=[
+                client.V1Volume(name="minecraft-data", persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)),
+                client.V1Volume(
+                    name="plugins-cache",
+                    persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                        claim_name="plugins-cache",
+                        read_only=True
+                    )
+                ),
+                client.V1Volume(name="servertap-config", config_map=client.V1ConfigMapVolumeSource(name=f"servertap-config-{deployment_name}")),
+                client.V1Volume(name="paper-config", config_map=client.V1ConfigMapVolumeSource(name="paper-global-config"))
+            ],
+            security_context=client.V1PodSecurityContext(fs_group=1000, run_as_non_root=True),
+            restart_policy="Always"
+        )
+
+        deployment = client.V1Deployment(
+            api_version="apps/v1",
+            kind="Deployment",
             metadata=client.V1ObjectMeta(
-                name=pod_name,
+                name=deployment_name,
                 namespace=K8S_NAMESPACE,
-                labels={"app": pod_name, "type": "minecraft-server"},
-                annotations={"created-by": "k8s-manager"}
+                labels=pod_labels
             ),
-            spec=client.V1PodSpec(
-                init_containers=[
-                    # ⭐ 새로 추가: 플러그인 캐시에서 복사
-                    client.V1Container(
-                        name="copy-plugins-from-cache",
-                        image=BUSYBOX_IMAGE,
-                        command=['sh', '-c'],
-                        args=[
-                            "set -e; "
-                            "mkdir -p /data/plugins; "
-                            "cp /plugins-cache/*.jar /data/plugins/ 2>/dev/null || true; "
-                            "chmod 644 /data/plugins/*.jar 2>/dev/null || true; "
-                            "echo 'Plugins copied from cache:'; "
-                            "ls -lh /data/plugins/"
-                        ],
-                        volume_mounts=[
-                            client.V1VolumeMount(name="minecraft-data", mount_path="/data"),
-                            client.V1VolumeMount(name="plugins-cache", mount_path="/plugins-cache", read_only=True)
-                        ],
-                        security_context=client.V1SecurityContext(run_as_user=1000, run_as_group=1000)
-                    ),
-                    client.V1Container(
-                        name="copy-serpertap-config",
-                        image=BUSYBOX_IMAGE,
-                        command=['sh', '-c'],
-                        args=[
-                            "set -e; mkdir -p /data/plugins/ServerTap; "
-                            "cp /config/config.yml /data/plugins/ServerTap/config.yml; "
-                            "chmod 644 /data/plugins/ServerTap/config.yml; "
-                            "echo 'ServerTap config copied successfully.'"
-                        ],
-                        volume_mounts=[
-                            client.V1VolumeMount(name="minecraft-data", mount_path="/data"),
-                            client.V1VolumeMount(name="servertap-config", mount_path="/config")
-                        ],
-                        security_context=client.V1SecurityContext(run_as_user=1000, run_as_group=1000)
-                    ),
-                    client.V1Container(
-                        name="copy-paper-config",
-                        image=BUSYBOX_IMAGE,
-                        command=['sh', '-c'],
-                        args=[
-                            "set -e; mkdir -p /data/config; "
-                            "cp /paper-config/paper-global.yml /data/config/paper-global.yml; "
-                            "chmod 644 /data/config/paper-global.yml; "
-                            "echo 'Paper config copied successfully.'"
-                        ],
-                        volume_mounts=[
-                            client.V1VolumeMount(name="minecraft-data", mount_path="/data"),
-                            client.V1VolumeMount(name="paper-config", mount_path="/paper-config")
-                        ],
-                        security_context=client.V1SecurityContext(run_as_user=1000, run_as_group=1000)
-                    )
-                ],
-                containers=[
-                    client.V1Container(
-                        name="minecraft",
-                        image=MINECRAFT_IMAGE,
-                        ports=[
-                            client.V1ContainerPort(container_port=25565, name="minecraft"),
-                            client.V1ContainerPort(container_port=4567, name="servertap")
-                        ],
-                        env=[
-                            client.V1EnvVar(name="EULA", value="TRUE"),
-                            client.V1EnvVar(name="TYPE", value="PAPER"),
-                            client.V1EnvVar(name="VERSION", value="1.21.1"),
-                            client.V1EnvVar(name="MEMORY", value="3G"),
-                            client.V1EnvVar(name="ONLINE_MODE", value="FALSE"),
-                            client.V1EnvVar(name="PAPER_PROXY_SECRET", value=VELOCITY_SECRET),
-                            # ⭐ PLUGINS 환경변수 제거 (init container에서 복사하므로)
-                        ],
-                        resources=client.V1ResourceRequirements(
-                            limits={"cpu": str(cpu_limit), "memory": memory_limit},
-                            requests={"cpu": str(cpu_request), "memory": memory_request}
-                        ),
-                        security_context=client.V1SecurityContext(run_as_non_root=True, run_as_user=1000, run_as_group=1000, allow_privilege_escalation=False),
-                        volume_mounts=[client.V1VolumeMount(name="minecraft-data", mount_path="/data")],
-                        readiness_probe=client.V1Probe(tcp_socket=client.V1TCPSocketAction(port=25565), initial_delay_seconds=60, period_seconds=5, failure_threshold=20),
-                        liveness_probe=client.V1Probe(tcp_socket=client.V1TCPSocketAction(port=25565), initial_delay_seconds=180, period_seconds=30, failure_threshold=3)
-                    )
-                ],
-                volumes=[
-                    client.V1Volume(name="minecraft-data", persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)),
-                    # ⭐ 새로 추가: 플러그인 캐시 볼륨
-                    client.V1Volume(
-                        name="plugins-cache",
-                        persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                            claim_name="plugins-cache",
-                            read_only=True
-                        )
-                    ),
-                    client.V1Volume(name="servertap-config", config_map=client.V1ConfigMapVolumeSource(name=f"servertap-config-{pod_name}")),
-                    client.V1Volume(name="paper-config", config_map=client.V1ConfigMapVolumeSource(name="paper-global-config"))
-                ],
-                security_context=client.V1PodSecurityContext(fs_group=1000, run_as_non_root=True),
-                restart_policy="Always"
+            spec=client.V1DeploymentSpec(
+                replicas=1,
+                selector=client.V1LabelSelector(match_labels=pod_labels),
+                template=client.V1PodTemplateSpec(
+                    metadata=client.V1ObjectMeta(labels=pod_labels),
+                    spec=pod_spec
+                )
             )
         )
-        print(f"📦 Pod '{pod_name}' 생성 중...")
-        self.v1.create_namespaced_pod(namespace=K8S_NAMESPACE, body=pod)
+
+        print(f"📦 Deployment '{deployment_name}' 생성 중...")
+        self.apps_v1.create_namespaced_deployment(namespace=K8S_NAMESPACE, body=deployment)
 
     def create_service(self, pod_name: str):
         """Pod를 위한 ClusterIP 서비스를 생성합니다."""
@@ -382,42 +387,37 @@ blocked-paths: []
 
     def create_minecraft_resources(self, pod_name: str, pvc_name: str, servertap_api_key: str, memory_limit: str = MEMORY_LIMIT, memory_request: str = MEMORY_REQUEST, cpu_limit: str = CPU_LIMIT, cpu_request: str = CPU_REQUEST, storage_capacity: str = DEFAULT_STORAGE_CAPACITY) -> Dict[str, Any]:
         """마인크래프트 서버에 필요한 모든 리소스를 생성/관리합니다."""
-        pod_name = self._sanitize_name(pod_name)
+        deployment_name = self._sanitize_name(pod_name) # pod_name을 deployment_name으로 사용
         pvc_name = self._sanitize_name(pvc_name)
 
-        # 0. 기존 임시 리소스 정리 (Pod, Service, Ingress, ConfigMap)
-        self.cleanup_ephemeral_resources(pod_name)
+        # 0. 기존 임시 리소스 정리 (Deployment, Service, Ingress, ConfigMap)
+        self.cleanup_ephemeral_resources(deployment_name)
 
         # 1. ConfigMap 생성
         self.create_or_update_paper_configmap()
-        self.create_servertap_configmap(pod_name, servertap_api_key)
+        self.create_servertap_configmap(deployment_name, servertap_api_key)
 
         # 2. PV/PVC 생성 또는 재사용
         if not self.pvc_exists(pvc_name):
-            # ⭐ NFS 디렉토리 먼저 생성
             self.create_nfs_directory_job(pvc_name)
-            
-            # PV 생성
             self.create_persistent_volume(pvc_name, storage_capacity)
-            
-            # PVC 생성 및 바인딩 대기
             self.create_persistent_volume_claim(pvc_name, storage_capacity)
         
-        # 3. Pod 생성
-        self.create_pod(pod_name, pvc_name, memory_limit, memory_request, cpu_limit, cpu_request)
+        # 3. Deployment 생성
+        self.create_deployment(deployment_name, pvc_name, memory_limit, memory_request, cpu_limit, cpu_request)
 
         # 4. Service 생성
-        self.create_service(pod_name)
+        self.create_service(deployment_name)
 
         # 5. Ingress 생성
-        self.create_ingress(pod_name)
+        self.create_ingress(deployment_name)
 
         return {
             "status": "success",
-            "pod_name": pod_name,
+            "pod_name": deployment_name,
             "pvc_name": pvc_name,
-            "game_url": f"{pod_name}.{GAME_DOMAIN}",
-            "api_url": f"http://{pod_name}-api.{GAME_DOMAIN}"
+            "game_url": f"{deployment_name}.{GAME_DOMAIN}",
+            "api_url": f"http://{deployment_name}-api.{GAME_DOMAIN}"
         }
 
     def _delete_resource(self, delete_func, resource_type: str, resource_name: str, **kwargs):
@@ -431,13 +431,13 @@ blocked-paths: []
                 raise
             print(f"⚠️ {resource_type} '{resource_name}'이(가) 존재하지 않음")
 
-    def cleanup_ephemeral_resources(self, pod_name: str):
-        """Pod, Service, Ingress 등 일시적인 리소스를 정리합니다. (PV/PVC 제외)"""
-        print(f"🧹 임시 리소스 정리 시작: {pod_name}")
-        self._delete_resource(self.v1.delete_namespaced_pod, "Pod", pod_name, grace_period_seconds=0)
-        self._delete_resource(self.v1.delete_namespaced_service, "Service", f"{pod_name}-svc")
-        self._delete_resource(self.networking_v1.delete_namespaced_ingress, "Ingress", f"servertap-{pod_name}-ingress")
-        self._delete_resource(self.v1.delete_namespaced_config_map, "ConfigMap", f"servertap-config-{pod_name}")
+    def cleanup_ephemeral_resources(self, deployment_name: str):
+        """Deployment, Service, Ingress 등 일시적인 리소스를 정리합니다. (PV/PVC 제외)"""
+        print(f"🧹 임시 리소스 정리 시작: {deployment_name}")
+        self._delete_resource(self.apps_v1.delete_namespaced_deployment, "Deployment", deployment_name)
+        self._delete_resource(self.v1.delete_namespaced_service, "Service", f"{deployment_name}-svc")
+        self._delete_resource(self.networking_v1.delete_namespaced_ingress, "Ingress", f"servertap-{deployment_name}-ingress")
+        self._delete_resource(self.v1.delete_namespaced_config_map, "ConfigMap", f"servertap-config-{deployment_name}")
         # paper-global-config는 공용이므로 삭제하지 않음
 
     def delete_persistent_data(self, pvc_name: str):
