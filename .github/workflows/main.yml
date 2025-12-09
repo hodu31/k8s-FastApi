@@ -1,0 +1,63 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches: [ "main" ]  # main 브랜치에 코드가 올라오면 실행
+
+# 🔐 권한 설정 (이게 있어야 로봇이 deployment.yaml을 수정할 수 있음)
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. 코드 가져오기
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2. 도커 허브 로그인 (Settings > Secrets에 등록된 정보 사용)
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    # 3. 도커 이미지 빌드 및 푸시
+    # latest 태그와 커밋 해시(github.sha) 태그 두 가지를 모두 만듭니다.
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/minecraft-fastapi:latest
+          ${{ secrets.DOCKER_USERNAME }}/minecraft-fastapi:${{ github.sha }}
+
+    # 4. Kubernetes 배포 파일(deployment.yaml)의 이미지 태그 수정 후 Git Push
+    # 도커 푸시가 성공했을 때만 실행됩니다.
+    - name: Update Kubernetes Manifest
+      run: |
+        # Git 사용자 설정 (GitHub Actions 봇 이름으로 설정)
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
+        
+        # ⚠️ [중요] 수정할 파일 경로를 정확히 적어주세요!
+        # 만약 파일이 'k8s' 폴더 안에 있다면 "k8s/deployment.yaml"로 고쳐야 합니다.
+        DEPLOYMENT_FILE="deployment.yaml" 
+        
+        # sed 명령어로 deployment.yaml 안의 이미지 태그를 현재 커밋 해시로 교체
+        # 예: image: de31/minecraft-fastapi:v2 -> image: de31/minecraft-fastapi:a1b2c3...
+        sed -i "s|image: ${{ secrets.DOCKER_USERNAME }}/minecraft-fastapi:.*|image: ${{ secrets.DOCKER_USERNAME }}/minecraft-fastapi:${{ github.sha }}|g" $DEPLOYMENT_FILE
+        
+        # 변경사항 확인 및 커밋
+        git add $DEPLOYMENT_FILE
+        
+        # 실제로 변경된 내용이 있을 때만 커밋하고 푸시 (에러 방지)
+        if ! git diff-index --quiet HEAD; then
+          git commit -m "Update deployment image tag to ${{ github.sha }}"
+          git push
+        else
+          echo "No changes to commit"
+        fi
