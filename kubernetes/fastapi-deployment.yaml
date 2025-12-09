@@ -19,7 +19,7 @@ spec:
                 - name: fastapi
                   # TODO: 아래 이미지 경로는 실제 빌드하고 푸시한 이미지 경로로 변경해야 합니다.
                   # 예: your-dockerhub-username/minecraft-fastapi:v2
-                  image: de31/minecraft-fastapi:latest
+                  image: de31/minecraft-fastapi:fa60a16aad1b6318b2822b9c937ec2acbe46eb26
                   imagePullPolicy: Always
                   ports:
                       - containerPort: 8000
