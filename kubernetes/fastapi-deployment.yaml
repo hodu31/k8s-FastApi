@@ -16,9 +16,15 @@ spec:
             serviceAccountName: fastapi-sa
             containers:
                 - name: fastapi
+<<<<<<< HEAD
                   # 깃허브 액션이 배포할 때 자동으로 최신 이미지 태그로 바꿔치기 합니다.
                   # (지금은 latest로 두셔도 상관없습니다)
                   image: de31/minecraft-fastapi:latest
+=======
+                  # TODO: 아래 이미지 경로는 실제 빌드하고 푸시한 이미지 경로로 변경해야 합니다.
+                  # 예: your-dockerhub-username/minecraft-fastapi:v2
+                  image: de31/minecraft-fastapi:fa60a16aad1b6318b2822b9c937ec2acbe46eb26
+>>>>>>> 7d138fe5d29e96ce09aa6bea8ddbf18de28a1fdd
                   imagePullPolicy: Always
                   ports:
                       - containerPort: 8000
