@@ -19,13 +19,13 @@ spec:
                   # 깃허브 액션이 배포할 때 자동으로 최신 이미지 태그로 바꿔치기 합니다.
                   # (지금은 latest로 두셔도 상관없습니다)
 <<<<<<< HEAD
-                  image: de31/minecraft-fastapi:latest
+                  image: de31/minecraft-fastapi:38474db5b9d86faeb8f2b82868d5beca89596bc0
 =======
-                  image: de31/minecraft-fastapi:0d81bf7631e864bf9e977bdee7be12f5ac07e502
+                  image: de31/minecraft-fastapi:38474db5b9d86faeb8f2b82868d5beca89596bc0
 =======
                   # TODO: 아래 이미지 경로는 실제 빌드하고 푸시한 이미지 경로로 변경해야 합니다.
                   # 예: your-dockerhub-username/minecraft-fastapi:v2
-                  image: de31/minecraft-fastapi:0d81bf7631e864bf9e977bdee7be12f5ac07e502
+                  image: de31/minecraft-fastapi:38474db5b9d86faeb8f2b82868d5beca89596bc0
 >>>>>>> 7d138fe5d29e96ce09aa6bea8ddbf18de28a1fdd
 >>>>>>> e593d8ca04526974eeaaefdd245187814ef6a818
                   imagePullPolicy: Always
