@@ -26,9 +26,23 @@ spec:
         - sh
         - -c
         - |
-          echo "Downloading SubdomainRouterEnhanced plugin from GitHub..."
+          echo "Downloading Plugins..."
+              
+          # 1. SubdomainRouter (기존 유지)
+          echo "Downloading SubdomainRouterEnhanced..."
           curl -L -o /plugins/SubdomainRouterEnhanced-2.0.0.jar \
             https://github.com/hodu31/velocity-plugins/releases/download/v2.0.0/SubdomainRouterEnhanced-2.0.0.jar
+          
+          # 2. [수정됨] LimboAPI (검증된 최신 버전 1.1.26)
+          echo "Downloading LimboAPI 1.1.26..."
+          curl -L -o /plugins/LimboAPI.jar \
+            https://github.com/Elytrium/LimboAPI/releases/download/1.1.26/limboapi-1.1.26.jar
+
+          # 3. [수정됨] LimboFilter (검증된 최신 버전 1.1.18)
+          echo "Downloading LimboFilter 1.1.18..."
+          curl -L -o /plugins/LimboFilter.jar \
+            https://github.com/Elytrium/LimboFilter/releases/download/1.1.18/limbofilter-1.1.18.jar
+          
           echo "Download complete!"
           ls -lh /plugins/
         volumeMounts:
@@ -84,7 +98,7 @@ spec:
         - name: TYPE
           value: "VELOCITY"
         - name: VELOCITY_VERSION
-          value: "LATEST"
+          value: "3.3.0-SNAPSHOT"
         - name: MEMORY
           value: "1G"
         volumeMounts:
