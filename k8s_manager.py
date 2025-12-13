@@ -270,7 +270,11 @@ blocked-paths: []
                         client.V1EnvVar(name="VERSION", value="1.21.1"),
                         client.V1EnvVar(name="MEMORY", value="3G"),
                         client.V1EnvVar(name="ONLINE_MODE", value="FALSE"),
-                        client.V1EnvVar(name="PAPER_PROXY_SECRET", value=VELOCITY_SECRET),
+                        client.V1EnvVar(name="PAPER_PROXY_SECRET", value=VELOCITY_SECRET),# 👇 [수정됨] Velocity 연동 필수 환경변수 3개 👇
+                        client.V1EnvVar(name="CFG_PAPER_PROXIES_VELOCITY_ENABLED", value="true"),
+                        client.V1EnvVar(name="CFG_PAPER_PROXIES_VELOCITY_ONLINE_MODE", value="false"),
+                        # 기존 PAPER_PROXY_SECRET 대신 정확한 변수명 사용
+                        client.V1EnvVar(name="CFG_PAPER_PROXIES_VELOCITY_SECRET", value=VELOCITY_SECRET),
                     ],
                     resources=client.V1ResourceRequirements(
                         limits={"cpu": str(cpu_limit), "memory": memory_limit},

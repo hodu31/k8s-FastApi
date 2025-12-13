@@ -42,7 +42,12 @@ spec:
           echo "Downloading LimboFilter 1.1.18..."
           curl -L -o /plugins/LimboFilter.jar \
             https://github.com/Elytrium/LimboFilter/releases/download/1.1.18/limbofilter-1.1.18.jar
-          
+        
+          # 4. [추가됨] TCPShield (RealIP 복원용)
+          echo "Downloading TCPShield..."
+          curl -L -o /plugins/TCPShield.jar \
+            https://github.com/TCPShield/RealIP/releases/download/2.7.2/TCPShield-2.7.2.jar
+
           echo "Download complete!"
           ls -lh /plugins/
         volumeMounts:
