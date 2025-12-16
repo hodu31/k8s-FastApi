@@ -201,6 +201,11 @@ blocked-paths: []
     def create_deployment(self, deployment_name: str, pvc_name: str, memory_limit: str = MEMORY_LIMIT, memory_request: str = MEMORY_REQUEST, cpu_limit: str = CPU_LIMIT, cpu_request: str = CPU_REQUEST):
         """마인크래프트 서버를 위한 Deployment를 생성합니다."""
         pod_labels = {"app": deployment_name, "type": "minecraft-server"}
+        
+        memory_limit = MEMORY_LIMIT
+        memory_request = MEMORY_REQUEST
+        cpu_limit = CPU_LIMIT
+        cpu_request = CPU_REQUEST
 
         pod_spec = client.V1PodSpec(
             priority_class_name="high-priority-customer",
