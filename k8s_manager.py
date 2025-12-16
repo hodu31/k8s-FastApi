@@ -21,10 +21,10 @@ K8S_NAMESPACE = os.getenv("K8S_NAMESPACE", "minecraft-servers")
 MINECRAFT_IMAGE = os.getenv("MINECRAFT_IMAGE", "itzg/minecraft-server:latest")
 BUSYBOX_IMAGE = os.getenv("BUSYBOX_IMAGE", "busybox:1.35")
 DEFAULT_STORAGE_CAPACITY = os.getenv("DEFAULT_STORAGE_CAPACITY", "10Gi")
-MEMORY_LIMIT = os.getenv("MEMORY_LIMIT", "4Gi")
-MEMORY_REQUEST = os.getenv("MEMORY_REQUEST", "2Gi")
+MEMORY_LIMIT = os.getenv("MEMORY_LIMIT", "3Gi")
+MEMORY_REQUEST = os.getenv("MEMORY_REQUEST", "3Gi")
 CPU_LIMIT = os.getenv("CPU_LIMIT", "2")
-CPU_REQUEST = os.getenv("CPU_REQUEST", "1")
+CPU_REQUEST = os.getenv("CPU_REQUEST", "2")
 VELOCITY_SECRET = os.getenv("VELOCITY_SECRET")
 if not VELOCITY_SECRET:
     raise RuntimeError("VELOCITY_SECRET 환경변수가 설정되지 않았습니다!")
@@ -268,7 +268,7 @@ blocked-paths: []
                         client.V1EnvVar(name="EULA", value="TRUE"),
                         client.V1EnvVar(name="TYPE", value="PAPER"),
                         client.V1EnvVar(name="VERSION", value="1.21.1"),
-                        client.V1EnvVar(name="MEMORY", value="3G"),
+                        client.V1EnvVar(name="MEMORY", value="2G"),
                         client.V1EnvVar(name="ONLINE_MODE", value="FALSE"),
                         client.V1EnvVar(name="MAX_TICK_TIME", value="-1"),
                         client.V1EnvVar(name="PAPER_PROXY_SECRET", value=VELOCITY_SECRET),# 👇 [수정됨] Velocity 연동 필수 환경변수 3개 👇
