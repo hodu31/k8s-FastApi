@@ -22,7 +22,7 @@ spec:
                 - name: fastapi
                   # 깃허브 액션이 배포할 때 자동으로 최신 이미지 태그로 바꿔치기 합니다.
                   # (지금은 latest로 두셔도 상관없습니다)
-                  image: de31/minecraft-fastapi:0486ab428bc6f87454481968112766a45c93165c
+                  image: de31/minecraft-fastapi:9c3364c6038fa773712050e142839001dfe88f2e
                   imagePullPolicy: Always
                   ports:
                       - containerPort: 8000
