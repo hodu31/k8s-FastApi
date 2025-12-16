@@ -16,6 +16,9 @@ spec:
         app: velocity
     spec:
       serviceAccountName: velocity-sa
+
+      priorityClassName: velocity-priority
+
       nodeSelector:
         kubernetes.io/hostname: worker03
       
@@ -98,6 +101,14 @@ spec:
         ports:
         - name: velocity-port
           containerPort: 25577
+
+        resources:
+          requests:
+            cpu: "500m"      # 최소 0.5 코어 보장
+            memory: "1Gi"    # 최소 1GB 메모리 보장 (자바 힙 크기)
+          limits:
+            memory: "2Gi"    # 최대 2GB까지 사용 (자바 오버헤드 고려)
+
         env:
         - name: TYPE
           value: "VELOCITY"

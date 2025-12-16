@@ -1,0 +1,8 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: velocity-priority
+value: 1000000
+globalDefault: false
+description: "Velocity Proxy를 위한 최상위 우선순위"
+preemptionPolicy: PreemptLowerPriority
