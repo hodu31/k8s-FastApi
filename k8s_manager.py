@@ -21,10 +21,10 @@ K8S_NAMESPACE = os.getenv("K8S_NAMESPACE", "minecraft-servers")
 MINECRAFT_IMAGE = os.getenv("MINECRAFT_IMAGE", "itzg/minecraft-server:latest")
 BUSYBOX_IMAGE = os.getenv("BUSYBOX_IMAGE", "busybox:1.35")
 DEFAULT_STORAGE_CAPACITY = os.getenv("DEFAULT_STORAGE_CAPACITY", "10Gi")
-MEMORY_LIMIT = os.getenv("MEMORY_LIMIT", "3Gi")
-MEMORY_REQUEST = os.getenv("MEMORY_REQUEST", "3Gi")
-CPU_LIMIT = os.getenv("CPU_LIMIT", "2")
-CPU_REQUEST = os.getenv("CPU_REQUEST", "2")
+MEMORY_LIMIT = "3Gi"
+MEMORY_REQUEST = "3Gi"
+CPU_LIMIT = "2"
+CPU_REQUEST = "2"
 VELOCITY_SECRET = os.getenv("VELOCITY_SECRET")
 if not VELOCITY_SECRET:
     raise RuntimeError("VELOCITY_SECRET 환경변수가 설정되지 않았습니다!")
