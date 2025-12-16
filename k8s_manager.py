@@ -224,7 +224,7 @@ blocked-paths: []
                     security_context=client.V1SecurityContext(run_as_user=1000, run_as_group=1000)
                 ),
                 client.V1Container(
-                    name="copy-serpertap-config",
+                    name="copy-servertap-config",
                     image=BUSYBOX_IMAGE,
                     command=['sh', '-c'],
                     args=[
@@ -270,6 +270,7 @@ blocked-paths: []
                         client.V1EnvVar(name="VERSION", value="1.21.1"),
                         client.V1EnvVar(name="MEMORY", value="3G"),
                         client.V1EnvVar(name="ONLINE_MODE", value="FALSE"),
+                        client.V1EnvVar(name="MAX_TICK_TIME", value="-1"),
                         client.V1EnvVar(name="PAPER_PROXY_SECRET", value=VELOCITY_SECRET),# 👇 [수정됨] Velocity 연동 필수 환경변수 3개 👇
                         client.V1EnvVar(name="CFG_PAPER_PROXIES_VELOCITY_ENABLED", value="true"),
                         client.V1EnvVar(name="CFG_PAPER_PROXIES_VELOCITY_ONLINE_MODE", value="false"),

@@ -72,15 +72,14 @@ spec:
         - name: plugin-config-volume
           mountPath: /plugin-config
       
-      # 👇 [수정됨] 하드코딩 제거하고 Secret에서 가져오도록 변경!
       - name: set-forwarding-secret
         image: busybox:1.36
         env:
           - name: FORWARDING_SECRET
             valueFrom:
               secretKeyRef:
-                name: fastapi-secrets           # 아까 만든 시크릿 이름
-                key: velocity-forwarding-secret # 시크릿 안에 있는 키 이름
+                name: fastapi-secrets           
+                key: velocity-forwarding-secret 
         command:
         - sh
         - -c
